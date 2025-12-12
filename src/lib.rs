@@ -1,6 +1,7 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData};
 
 /// State
+#[derive(Clone)]
 struct Incomplete;
 /// State
 struct Ready;
@@ -8,6 +9,7 @@ struct Ready;
 /// Rule Data
 ///
 /// abstruct shift hall
+#[derive(Clone)]
 struct ShiftHall<'a, State> {
     group_id: usize,
     id: usize,
@@ -15,11 +17,15 @@ struct ShiftHall<'a, State> {
     _state: PhantomData<State>
 }
 
-struct StaffGroupList<'a>(&'a[StaffGroup; 2]);
+struct StaffGroupList<'a, const N /*number of staff group*/: usize>(&'a[StaffGroup; N]);
 
 impl<'a> ShiftHall<'a, Incomplete> {
-    fn set_self_from_staff_list(self, staff_group_list: &'a StaffGroupList, delta: usize) -> ShiftHall<'a, Ready> {
-        let staff_group = &staff_group_list.0[self.group_id];
+    fn set_self_from_staff_list<const N:usize>(
+        self,
+        staff_group_list: &'a StaffGroupList<N /*number of staff group*/>,
+        delta: usize
+    ) -> ShiftHall<'a, Ready> {
+        let staff_group = &staff_group_list.0[self.group_id /*group id must be less than N*/];
         let staff = staff_group.pickup_staff((delta + self.id) % staff_group.staff_list.len());
         ShiftHall {
             group_id: self.group_id,
@@ -30,16 +36,23 @@ impl<'a> ShiftHall<'a, Incomplete> {
     }
 }
 
+impl<'a> ShiftHall<'a, Ready> {
+    fn gen_decided(&self) -> Option<&'a Staff> {
+        self.staff
+    }
+}
+
 /// Rule Data
 ///
 /// shift a day
+#[derive(Clone)]
 struct DayRule<'a, State> {
     shift_morning: Vec<ShiftHall<'a, State>>,
     shift_afternoon: Vec<ShiftHall<'a, State>>,
 }
 
 impl<'a> DayRule<'a, Incomplete> {
-    fn set_self_from_staff_list(self, staff_group_list: &'a StaffGroupList, delta: usize) -> DayRule<'a, Ready> {
+    fn set_self_from_staff_list<const N:usize>(self, staff_group_list: &'a StaffGroupList<N>, delta: usize) -> DayRule<'a, Ready> {
         let mut shift_morning: Vec<ShiftHall<'_, Ready>> = vec![];
         let mut shift_afternoon: Vec<ShiftHall<'_, Ready>> = vec![];
         for i in self.shift_morning {
@@ -56,13 +69,34 @@ impl<'a> DayRule<'a, Incomplete> {
     }
 }
 
+#[derive(Debug, Clone)]
+struct DayDecidedShift<'a> {
+    shift_morning: Vec<Option<&'a Staff>>,
+    shift_afternoon: Vec<Option<&'a Staff>>,
+}
+
+impl<'a> DayRule<'a, Ready> {
+    fn gen_decided(&self) -> DayDecidedShift<'a> {
+        let shift_morning: Vec<Option<&'a Staff>>  = self
+            .shift_morning
+            .iter()
+            .map(|hole| hole.gen_decided()).collect();
+        let shift_afternoon: Vec<Option<&'a Staff>> = self
+            .shift_afternoon
+            .iter()
+            .map(|hole| hole.gen_decided()).collect();
+        DayDecidedShift { shift_morning, shift_afternoon }
+    }
+}
+
 /// Rule Data
+#[derive(Clone)]
 struct WeekRule<'a, State> (
-    [DayRule<'a, State>; 5]
+    [DayRule<'a, State>; 7]
 );
 
 impl<'a> WeekRule<'a, Incomplete> {
-    fn set_self_from_staff_list(self, staff_group_list: &'a StaffGroupList, delta: usize) -> WeekRule<'a, Ready> {
+    fn set_self_from_staff_list<const N:usize>(self, staff_group_list: &'a StaffGroupList<N>, delta: usize) -> WeekRule<'a, Ready> {
         WeekRule(
             self
                 .0
@@ -71,9 +105,79 @@ impl<'a> WeekRule<'a, Incomplete> {
     }
 }
 
+struct WeekDecidedShift<'a>(
+    [DayDecidedShift<'a>; 7]
+);
+
+impl<'a> WeekRule<'a, Ready> {
+    fn gen_decided(&self) -> WeekDecidedShift<'a> {
+        WeekDecidedShift(
+            std::array::from_fn(|i| self.0[i].gen_decided())
+        )
+    }
+}
+
+#[derive(Clone)]
+struct WeekRuleTable<'a, const N /*number of week rule*/: usize, State>(
+    [WeekRule<'a, State>; N]
+);
+
+/*
+impl<'a, const N: usize> WeekRuleTable<'a, N, Incomplete> {
+    fn set_self_from_staff_list<const M: usize>(self, staff_group_list: &'a StaffGroupList<M>, delta: usize) -> WeekRuleTable<'a, N, Ready> {
+        WeekRuleTable(
+            self
+                .0
+                .map(|a| 
+                    a.set_self_from_staff_list(
+                        staff_group_list, 
+                        delta
+                ))
+        )
+    }
+}
+*/
+
+struct WeeksDecidedShift<'a, const N: usize>(
+    [WeekDecidedShift<'a>; N]
+);
+
+impl<'a, const N: usize> WeekRuleTable<'a, N, Ready> {
+    fn gen_decided(&self) -> WeeksDecidedShift<'a, N> {
+        WeeksDecidedShift(
+            std::array::from_fn(|i| self.0[i].gen_decided())
+        )
+    }
+}
+
+fn gen_shift<'a, const N /*number of week rules*/: usize, const M /*number of staff group list*/: usize>(
+    week_rule_table: WeekRuleTable<'a, N, Incomplete>,
+    staff_group_list: &'a StaffGroupList<M>,
+    week_delta: usize,
+    week_gen_range:usize) -> Box<[WeekDecidedShift<'a>]>
+{
+    let cycle = week_rule_table.0.len();
+
+    (0..week_gen_range)
+        .map(|i| {
+            week_rule_table.0[week_delta + i % cycle].clone()
+        })
+        .enumerate()
+        .map(|(i, j)| 
+            j
+                .set_self_from_staff_list(staff_group_list, 
+                    i / cycle // the number that apply rules
+                )
+        )
+        .map(|i| i.gen_decided())
+        .collect::<Vec<_>>()
+        .into_boxed_slice()
+}
+
 // ========= names ===========
 
 /// Staff Info
+#[derive(Debug)]
 struct Staff {
     name: String,
     id: usize
@@ -102,11 +206,11 @@ impl StaffGroup {
 }
 
 impl StaffGroup{
+    /// assign staff
     fn pickup_staff<'a>(&'a self, index:usize) -> &'a Staff {
         &self.staff_list[index]
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -125,7 +229,7 @@ mod tests {
     fn c2h<'a>(type_char:char, id:usize) -> Option<ShiftHall<'a, Incomplete>> {
         match type_char {
             'a' => Some(ShiftHall {group_id: 0, id: id, staff: None, _state: PhantomData}),
-            'b' => Some(ShiftHall {group_id: 1,id: id, staff: None, _state: PhantomData}),
+            'b' => Some(ShiftHall {group_id: 1, id: id, staff: None, _state: PhantomData}),
             _ => None
         }
     }
@@ -136,6 +240,10 @@ mod tests {
 
     fn create_test_data() {
         let week_rule0 = WeekRule([
+            DayRule { // Sunday
+                shift_morning:vec![],
+                shift_afternoon:vec![]
+            },
             DayRule {
                 shift_morning:vec![c2h('a', 0).unwrap(), c2h('b', 0).unwrap()],
                 shift_afternoon:vec![c2h('b', 1).unwrap()]
@@ -156,9 +264,17 @@ mod tests {
                 shift_morning:vec![c2h('b', 5).unwrap(), c2h('b', 2).unwrap()],
                 shift_afternoon:vec![c2h('a', 3).unwrap(), c2h('b', 3).unwrap(), c2h('a', 2).unwrap()]
             },
+            DayRule {
+                shift_morning:vec![],
+                shift_afternoon:vec![]
+            },
         ]);
 
         let week_rule1 = WeekRule([
+            DayRule { // Subday
+                shift_morning:vec![],
+                shift_afternoon:vec![]
+            },
             DayRule {
                 shift_morning:vec![c2h('a', 2).unwrap(), c2h('b', 3).unwrap()],
                 shift_afternoon:vec![c2h('b', 2).unwrap()]
@@ -179,8 +295,15 @@ mod tests {
                 shift_morning:vec![c2h('b', 1).unwrap(), c2h('b', 3).unwrap()],
                 shift_afternoon:vec![c2h('b', 5).unwrap(), c2h('a', 0).unwrap(), c2h('b', 0).unwrap()]
             },
+            DayRule {
+                shift_morning:vec![],
+                shift_afternoon:vec![]
+            },
         ]);
 
+        let week_rule_table = WeekRuleTable([week_rule0, week_rule1]);
+
+        // Read Staff info from test.toml file
         let s = std::fs::read_to_string("test.toml").unwrap();
         let groups: Config = toml::from_str(&s).unwrap();
         let mut staff_group_a = StaffGroup::new();
@@ -194,10 +317,19 @@ mod tests {
 
         let staff_group_list = StaffGroupList(&[staff_group_a, staff_group_b]);
 
+
+        let shift = gen_shift(week_rule_table, &staff_group_list, 0, 4);
+
+        for (week, i) in shift.iter().enumerate() {
+            println!("week{} ===========", week);
+            for j in &i.0 {
+                println!("{:?}", j);
+            }
+        }
     }
 
     #[test]
     fn it_works() {
-
+        create_test_data();
     }
 }
