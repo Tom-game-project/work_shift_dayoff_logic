@@ -1,4 +1,4 @@
-use std::{marker::PhantomData};
+use std::marker::PhantomData;
 
 /// State
 #[derive(Clone)]
@@ -10,16 +10,23 @@ pub struct Ready;
 ///
 /// abstruct shift hall
 #[derive(Clone)]
-struct ShiftHall<'a, State> {
+pub struct ShiftHall<'a, State> {
     group_id: usize,
     id: usize,
     staff: Option<&'a Staff>,
     _state: PhantomData<State>
 }
 
-pub struct StaffGroupList<'a, const N /*number of staff group*/: usize>(&'a[StaffGroup; N]);
+pub struct StaffGroupList<'a, const N /*number of staff group*/: usize>(
+    pub &'a[StaffGroup; N]
+);
 
 impl<'a> ShiftHall<'a, Incomplete> {
+    pub fn new(group_id: usize, id: usize) -> Self{
+        Self { group_id , id, staff: None, _state: PhantomData }
+
+    }
+
     fn set_self_from_staff_list<const N:usize>(
         self,
         staff_group_list: &'a StaffGroupList<N /*number of staff group*/>,
@@ -46,13 +53,18 @@ impl<'a> ShiftHall<'a, Ready> {
 ///
 /// shift a day
 #[derive(Clone)]
-struct DayRule<'a, State> {
-    shift_morning: Vec<ShiftHall<'a, State>>,
-    shift_afternoon: Vec<ShiftHall<'a, State>>,
+pub struct DayRule<'a, State> {
+    pub shift_morning: Vec<ShiftHall<'a, State>>,
+    pub shift_afternoon: Vec<ShiftHall<'a, State>>,
 }
 
 impl<'a> DayRule<'a, Incomplete> {
-    fn set_self_from_staff_list<const N:usize>(self, staff_group_list: &'a StaffGroupList<N>, delta: usize) -> DayRule<'a, Ready> {
+    fn set_self_from_staff_list<const N:usize>(
+        self,
+        staff_group_list: &'a StaffGroupList<N>,
+        delta: usize)
+        -> DayRule<'a, Ready> 
+    {
         let mut shift_morning: Vec<ShiftHall<'_, Ready>> = vec![];
         let mut shift_afternoon: Vec<ShiftHall<'_, Ready>> = vec![];
         for i in self.shift_morning {
@@ -91,8 +103,8 @@ impl<'a> DayRule<'a, Ready> {
 
 /// Rule Data
 #[derive(Clone)]
-struct WeekRule<'a, State> (
-    [DayRule<'a, State>; 7]
+pub struct WeekRule<'a, State> (
+    pub [DayRule<'a, State>; 7]
 );
 
 impl<'a> WeekRule<'a, Incomplete> {
@@ -119,36 +131,8 @@ impl<'a> WeekRule<'a, Ready> {
 
 #[derive(Clone)]
 pub struct WeekRuleTable<'a, const N /*number of week rule*/: usize, State>(
-    [WeekRule<'a, State>; N]
+    pub [WeekRule<'a, State>; N]
 );
-
-/*
-impl<'a, const N: usize> WeekRuleTable<'a, N, Incomplete> {
-    fn set_self_from_staff_list<const M: usize>(self, staff_group_list: &'a StaffGroupList<M>, delta: usize) -> WeekRuleTable<'a, N, Ready> {
-        WeekRuleTable(
-            self
-                .0
-                .map(|a| 
-                    a.set_self_from_staff_list(
-                        staff_group_list, 
-                        delta
-                ))
-        )
-    }
-}
-*/
-
-struct WeeksDecidedShift<'a, const N: usize>(
-    [WeekDecidedShift<'a>; N]
-);
-
-impl<'a, const N: usize> WeekRuleTable<'a, N, Ready> {
-    fn gen_decided(&self) -> WeeksDecidedShift<'a, N> {
-        WeeksDecidedShift(
-            std::array::from_fn(|i| self.0[i].gen_decided())
-        )
-    }
-}
 
 pub fn gen_shift<'a, const N /*number of week rules*/: usize, const M /*number of staff group list*/: usize>(
     week_rule_table: WeekRuleTable<'a, N, Incomplete>,
@@ -160,13 +144,13 @@ pub fn gen_shift<'a, const N /*number of week rules*/: usize, const M /*number o
 
     (0..week_gen_range)
         .map(|i| {
-            week_rule_table.0[(week_delta + i) % cycle].clone()
+            week_rule_table.0[(week_delta + i) % cycle].clone() // the rule that apply to
         })
         .enumerate()
         .map(|(i, j)| 
             j
                 .set_self_from_staff_list(staff_group_list, 
-                    (week_delta + i) / cycle // the number that apply rules
+                    (week_delta + i) / cycle // the number that applied rules
                 )
         )
         .map(|i| i.gen_decided())
@@ -184,22 +168,26 @@ pub struct Staff {
 }
 
 impl Staff {
-    fn set_id(&mut self, id:usize) {
-        self.id = id;
+    pub fn new(name: &str) -> Self {
+        Self { name: name.to_string(), id: 0 }
+    }
+
+    pub fn get_id(&self) -> usize {
+        self.id
     }
 }
 
 /// Staff Info
-struct StaffGroup {
+pub struct StaffGroup {
     staff_list: Vec<Staff>,
 }
 
 impl StaffGroup {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self { staff_list: vec![] }
     }
 
-    fn add_staff(&mut self, name:&str) {
+    pub fn add_staff(&mut self, name:&str) {
         self.staff_list.push(
             Staff { name: name.to_string(), id: self.staff_list.len() });
     }
@@ -212,124 +200,3 @@ impl StaffGroup{
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use serde::Deserialize;
-    use std::collections::BTreeMap;
-
-    #[derive(Debug, Deserialize)]
-    struct Group {
-        staff: Vec<String>,
-    }
-
-    type Config = BTreeMap<String, Group>;
-
-    /// char to hall 
-    fn c2h<'a>(type_char:char, id:usize) -> Option<ShiftHall<'a, Incomplete>> {
-        match type_char {
-            'a' => Some(ShiftHall {group_id: 0, id: id, staff: None, _state: PhantomData}),
-            'b' => Some(ShiftHall {group_id: 1, id: id, staff: None, _state: PhantomData}),
-            _ => None
-        }
-    }
-
-    fn create_staff(name: &str) -> Staff {
-        Staff { name: name.to_string(), id: 0 }
-    }
-
-    fn create_test_data() {
-        let week_rule0 = WeekRule([
-            DayRule { // Sunday
-                shift_morning:vec![],
-                shift_afternoon:vec![]
-            },
-            DayRule {
-                shift_morning:vec![c2h('a', 0).unwrap(), c2h('b', 0).unwrap()],
-                shift_afternoon:vec![c2h('b', 1).unwrap()]
-            },
-            DayRule {
-                shift_morning:vec![],
-                shift_afternoon:vec![c2h('a', 1).unwrap()]
-            },
-            DayRule {
-                shift_morning:vec![],
-                shift_afternoon:vec![]
-            },
-            DayRule {
-                shift_morning:vec![c2h('b', 4).unwrap()],
-                shift_afternoon:vec![]
-            },
-            DayRule {
-                shift_morning:vec![c2h('b', 5).unwrap(), c2h('b', 2).unwrap()],
-                shift_afternoon:vec![c2h('a', 3).unwrap(), c2h('b', 3).unwrap(), c2h('a', 2).unwrap()]
-            },
-            DayRule {
-                shift_morning:vec![],
-                shift_afternoon:vec![]
-            },
-        ]);
-
-        let week_rule1 = WeekRule([
-            DayRule { // Subday
-                shift_morning:vec![],
-                shift_afternoon:vec![]
-            },
-            DayRule {
-                shift_morning:vec![c2h('a', 2).unwrap(), c2h('b', 3).unwrap()],
-                shift_afternoon:vec![c2h('b', 2).unwrap()]
-            },
-            DayRule {
-                shift_morning:vec![],
-                shift_afternoon:vec![c2h('b', 4).unwrap()]
-            },
-            DayRule {
-                shift_morning:vec![],
-                shift_afternoon:vec![]
-            },
-            DayRule {
-                shift_morning:vec![c2h('a', 1).unwrap()],
-                shift_afternoon:vec![]
-            },
-            DayRule {
-                shift_morning:vec![c2h('b', 1).unwrap(), c2h('b', 3).unwrap()],
-                shift_afternoon:vec![c2h('b', 5).unwrap(), c2h('a', 0).unwrap(), c2h('b', 0).unwrap()]
-            },
-            DayRule {
-                shift_morning:vec![],
-                shift_afternoon:vec![]
-            },
-        ]);
-
-        let week_rule_table = WeekRuleTable([week_rule0, week_rule1]);
-
-        // Read Staff info from test.toml file
-        let s = std::fs::read_to_string("test.toml").unwrap();
-        let groups: Config = toml::from_str(&s).unwrap();
-        let mut staff_group_a = StaffGroup::new();
-        for name in &groups["A"].staff {
-            staff_group_a.add_staff(name);
-        }
-        let mut staff_group_b = StaffGroup::new();
-        for name in &groups["B"].staff {
-            staff_group_b.add_staff(name);
-        }
-
-        let staff_group_list = StaffGroupList(&[staff_group_a, staff_group_b]);
-
-
-        let shift = gen_shift(week_rule_table, &staff_group_list, 2, 6);
-
-        for (week, i) in shift.iter().enumerate() {
-            println!("week{} ===========", week);
-            for j in &i.0 {
-                println!("{:?}", j);
-            }
-        }
-    }
-
-    #[test]
-    fn it_works() {
-        create_test_data();
-    }
-}
