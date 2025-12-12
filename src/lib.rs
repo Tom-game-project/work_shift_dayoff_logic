@@ -2,9 +2,9 @@ use std::{marker::PhantomData};
 
 /// State
 #[derive(Clone)]
-struct Incomplete;
+pub struct Incomplete;
 /// State
-struct Ready;
+pub struct Ready;
 
 /// Rule Data
 ///
@@ -17,7 +17,7 @@ struct ShiftHall<'a, State> {
     _state: PhantomData<State>
 }
 
-struct StaffGroupList<'a, const N /*number of staff group*/: usize>(&'a[StaffGroup; N]);
+pub struct StaffGroupList<'a, const N /*number of staff group*/: usize>(&'a[StaffGroup; N]);
 
 impl<'a> ShiftHall<'a, Incomplete> {
     fn set_self_from_staff_list<const N:usize>(
@@ -70,9 +70,9 @@ impl<'a> DayRule<'a, Incomplete> {
 }
 
 #[derive(Debug, Clone)]
-struct DayDecidedShift<'a> {
-    shift_morning: Vec<Option<&'a Staff>>,
-    shift_afternoon: Vec<Option<&'a Staff>>,
+pub struct DayDecidedShift<'a> {
+    pub shift_morning: Vec<Option<&'a Staff>>,
+    pub shift_afternoon: Vec<Option<&'a Staff>>,
 }
 
 impl<'a> DayRule<'a, Ready> {
@@ -105,8 +105,8 @@ impl<'a> WeekRule<'a, Incomplete> {
     }
 }
 
-struct WeekDecidedShift<'a>(
-    [DayDecidedShift<'a>; 7]
+pub struct WeekDecidedShift<'a>(
+    pub [DayDecidedShift<'a>; 7]
 );
 
 impl<'a> WeekRule<'a, Ready> {
@@ -118,7 +118,7 @@ impl<'a> WeekRule<'a, Ready> {
 }
 
 #[derive(Clone)]
-struct WeekRuleTable<'a, const N /*number of week rule*/: usize, State>(
+pub struct WeekRuleTable<'a, const N /*number of week rule*/: usize, State>(
     [WeekRule<'a, State>; N]
 );
 
@@ -150,7 +150,7 @@ impl<'a, const N: usize> WeekRuleTable<'a, N, Ready> {
     }
 }
 
-fn gen_shift<'a, const N /*number of week rules*/: usize, const M /*number of staff group list*/: usize>(
+pub fn gen_shift<'a, const N /*number of week rules*/: usize, const M /*number of staff group list*/: usize>(
     week_rule_table: WeekRuleTable<'a, N, Incomplete>,
     staff_group_list: &'a StaffGroupList<M>,
     week_delta: usize,
@@ -160,13 +160,13 @@ fn gen_shift<'a, const N /*number of week rules*/: usize, const M /*number of st
 
     (0..week_gen_range)
         .map(|i| {
-            week_rule_table.0[week_delta + i % cycle].clone()
+            week_rule_table.0[(week_delta + i) % cycle].clone()
         })
         .enumerate()
         .map(|(i, j)| 
             j
                 .set_self_from_staff_list(staff_group_list, 
-                    i / cycle // the number that apply rules
+                    (week_delta + i) / cycle // the number that apply rules
                 )
         )
         .map(|i| i.gen_decided())
@@ -178,8 +178,8 @@ fn gen_shift<'a, const N /*number of week rules*/: usize, const M /*number of st
 
 /// Staff Info
 #[derive(Debug)]
-struct Staff {
-    name: String,
+pub struct Staff {
+    pub name: String,
     id: usize
 }
 
@@ -318,7 +318,7 @@ mod tests {
         let staff_group_list = StaffGroupList(&[staff_group_a, staff_group_b]);
 
 
-        let shift = gen_shift(week_rule_table, &staff_group_list, 0, 4);
+        let shift = gen_shift(week_rule_table, &staff_group_list, 2, 6);
 
         for (week, i) in shift.iter().enumerate() {
             println!("week{} ===========", week);
