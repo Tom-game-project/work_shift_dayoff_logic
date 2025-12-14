@@ -17,19 +17,18 @@ pub struct ShiftHall<'a, State> {
     _state: PhantomData<State>
 }
 
-pub struct StaffGroupList<'a, const N /*number of staff group*/: usize>(
-    pub &'a[StaffGroup; N]
+pub struct StaffGroupList(
+    pub Vec<StaffGroup>
 );
 
 impl<'a> ShiftHall<'a, Incomplete> {
     pub fn new(group_id: usize, id: usize) -> Self{
         Self { group_id , id, staff: None, _state: PhantomData }
-
     }
 
-    fn set_self_from_staff_list<const N:usize>(
+    fn set_self_from_staff_list(
         self,
-        staff_group_list: &'a StaffGroupList<N /*number of staff group*/>,
+        staff_group_list: &'a StaffGroupList,
         delta: usize
     ) -> ShiftHall<'a, Ready> {
         let staff_group = &staff_group_list.0[self.group_id /*group id must be less than N*/];
@@ -59,9 +58,9 @@ pub struct DayRule<'a, State> {
 }
 
 impl<'a> DayRule<'a, Incomplete> {
-    fn set_self_from_staff_list<const N:usize>(
+    fn set_self_from_staff_list(
         self,
-        staff_group_list: &'a StaffGroupList<N>,
+        staff_group_list: &'a StaffGroupList,
         delta: usize)
         -> DayRule<'a, Ready> 
     {
@@ -108,7 +107,7 @@ pub struct WeekRule<'a, State> (
 );
 
 impl<'a> WeekRule<'a, Incomplete> {
-    fn set_self_from_staff_list<const N:usize>(self, staff_group_list: &'a StaffGroupList<N>, delta: usize) -> WeekRule<'a, Ready> {
+    fn set_self_from_staff_list(self, staff_group_list: &'a StaffGroupList, delta: usize) -> WeekRule<'a, Ready> {
         WeekRule(
             self
                 .0
@@ -130,13 +129,13 @@ impl<'a> WeekRule<'a, Ready> {
 }
 
 #[derive(Clone)]
-pub struct WeekRuleTable<'a, const N /*number of week rule*/: usize, State>(
-    pub [WeekRule<'a, State>; N]
+pub struct WeekRuleTable<'a, State>(
+    pub Vec<WeekRule<'a, State>>
 );
 
-pub fn gen_shift<'a, const N /*number of week rules*/: usize, const M /*number of staff group list*/: usize>(
-    week_rule_table: WeekRuleTable<'a, N, Incomplete>,
-    staff_group_list: &'a StaffGroupList<M>,
+pub fn gen_shift<'a>(
+    week_rule_table: WeekRuleTable<'a, Incomplete>,
+    staff_group_list: &'a StaffGroupList,
     week_delta: usize,
     week_gen_range:usize) -> Box<[WeekDecidedShift<'a>]>
 {
@@ -153,7 +152,9 @@ pub fn gen_shift<'a, const N /*number of week rules*/: usize, const M /*number o
                     (week_delta + i) / cycle // the number that applied rules
                 )
         )
-        .map(|i| i.gen_decided())
+        .map(|i|
+            i.gen_decided()
+        )
         .collect::<Vec<_>>()
         .into_boxed_slice()
 }

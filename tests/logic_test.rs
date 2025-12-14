@@ -12,17 +12,13 @@ mod logic_test {
 
     type Config = BTreeMap<String, Group>;
 
-    /// char to hall 
+    /// char to shifthall 
     fn c2h<'a>(type_char:char, id:usize) -> Option<ShiftHall<'a, Incomplete>> {
         match type_char {
             'a' => Some(ShiftHall::new(0, id)),
             'b' => Some(ShiftHall::new(1, id)),
             _ => None
         }
-    }
-
-    fn create_staff(name: &str) -> Staff {
-        Staff::new(name)
     }
 
     fn create_test_data() {
@@ -88,12 +84,13 @@ mod logic_test {
             },
         ]);
 
-        let week_rule_table = WeekRuleTable([week_rule0, week_rule1]);
+        let week_rule_table = WeekRuleTable(vec![week_rule0, week_rule1]);
 
         // Read Staff info from test.toml file
         let s = std::fs::read_to_string("test.toml").unwrap();
         let groups: Config = toml::from_str(&s).unwrap();
         let mut staff_group_a = StaffGroup::new();
+
         for name in &groups["A"].staff {
             staff_group_a.add_staff(name);
         }
@@ -102,9 +99,9 @@ mod logic_test {
             staff_group_b.add_staff(name);
         }
 
-        let staff_group_list = StaffGroupList(&[staff_group_a, staff_group_b]);
+        let staff_group_list = StaffGroupList(vec![staff_group_a, staff_group_b]);
 
-        let shift = gen_shift(week_rule_table, &staff_group_list, 2, 6);
+        let shift = gen_shift(week_rule_table, &staff_group_list, 25, 5);
 
         for (week, i) in shift.iter().enumerate() {
             println!("week{} ===========", week);
