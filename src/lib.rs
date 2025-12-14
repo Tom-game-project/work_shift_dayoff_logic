@@ -21,17 +21,31 @@ pub struct StaffGroupList(
     pub Vec<StaffGroup>
 );
 
-impl<'a> ShiftHall<'a, Incomplete> {
-    pub fn new(group_id: usize, id: usize) -> Self{
-        Self { group_id , id, staff: None, _state: PhantomData }
-    }
+trait FillHoll<'a> {
+    type Output;
 
     fn set_self_from_staff_list(
         self,
         staff_group_list: &'a StaffGroupList,
         delta: usize
-    ) -> ShiftHall<'a, Ready> {
-        let staff_group = &staff_group_list.0[self.group_id /*group id must be less than N*/];
+    ) -> Self::Output;
+}
+
+impl<'a> ShiftHall<'a, Incomplete> {
+    pub fn new(group_id: usize, id: usize) -> Self{
+        Self { group_id , id, staff: None, _state: PhantomData }
+    }
+}
+
+impl<'a> FillHoll<'a> for ShiftHall<'a, Incomplete> {
+    type Output = ShiftHall<'a, Ready>;
+
+    fn set_self_from_staff_list(
+        self,
+        staff_group_list: &'a StaffGroupList,
+        delta: usize
+    ) -> Self::Output {
+        let staff_group = &staff_group_list.0[self.group_id /*group id must be less than staff_group_list length*/];
         let staff = staff_group.pickup_staff((delta + self.id) % staff_group.staff_list.len());
         ShiftHall {
             group_id: self.group_id,
@@ -57,12 +71,14 @@ pub struct DayRule<'a, State> {
     pub shift_afternoon: Vec<ShiftHall<'a, State>>,
 }
 
-impl<'a> DayRule<'a, Incomplete> {
+impl<'a> FillHoll<'a> for  DayRule<'a, Incomplete> {
+    type Output = DayRule<'a, Ready>;
+
     fn set_self_from_staff_list(
         self,
         staff_group_list: &'a StaffGroupList,
         delta: usize)
-        -> DayRule<'a, Ready> 
+        -> Self::Output
     {
         let mut shift_morning: Vec<ShiftHall<'_, Ready>> = vec![];
         let mut shift_afternoon: Vec<ShiftHall<'_, Ready>> = vec![];
@@ -91,11 +107,13 @@ impl<'a> DayRule<'a, Ready> {
         let shift_morning: Vec<Option<&'a Staff>>  = self
             .shift_morning
             .iter()
-            .map(|hole| hole.gen_decided()).collect();
+            .map(|hole| hole.gen_decided())
+            .collect();
         let shift_afternoon: Vec<Option<&'a Staff>> = self
             .shift_afternoon
             .iter()
-            .map(|hole| hole.gen_decided()).collect();
+            .map(|hole| hole.gen_decided())
+            .collect();
         DayDecidedShift { shift_morning, shift_afternoon }
     }
 }
@@ -106,8 +124,10 @@ pub struct WeekRule<'a, State> (
     pub [DayRule<'a, State>; 7]
 );
 
-impl<'a> WeekRule<'a, Incomplete> {
-    fn set_self_from_staff_list(self, staff_group_list: &'a StaffGroupList, delta: usize) -> WeekRule<'a, Ready> {
+impl<'a> FillHoll<'a> for WeekRule<'a, Incomplete> {
+    type Output = WeekRule<'a, Ready>;
+
+    fn set_self_from_staff_list(self, staff_group_list: &'a StaffGroupList, delta: usize) -> Self::Output {
         WeekRule(
             self
                 .0

@@ -23,11 +23,7 @@ mod logic_test {
 
     fn create_test_data() {
         let week_rule0 = WeekRule([
-            DayRule { // Sunday
-                shift_morning:vec![],
-                shift_afternoon:vec![]
-            },
-            DayRule {
+            DayRule { // Monday
                 shift_morning:vec![c2h('a', 0).unwrap(), c2h('b', 0).unwrap()],
                 shift_afternoon:vec![c2h('b', 1).unwrap()]
             },
@@ -51,14 +47,14 @@ mod logic_test {
                 shift_morning:vec![],
                 shift_afternoon:vec![]
             },
-        ]);
-
-        let week_rule1 = WeekRule([
-            DayRule { // Subday
+            DayRule { // Sunday
                 shift_morning:vec![],
                 shift_afternoon:vec![]
             },
-            DayRule {
+        ]);
+
+        let week_rule1 = WeekRule([
+            DayRule { // Monday
                 shift_morning:vec![c2h('a', 2).unwrap(), c2h('b', 3).unwrap()],
                 shift_afternoon:vec![c2h('b', 2).unwrap()]
             },
@@ -77,6 +73,10 @@ mod logic_test {
             DayRule {
                 shift_morning:vec![c2h('b', 1).unwrap(), c2h('b', 3).unwrap()],
                 shift_afternoon:vec![c2h('b', 5).unwrap(), c2h('a', 0).unwrap(), c2h('b', 0).unwrap()]
+            },
+            DayRule {
+                shift_morning:vec![],
+                shift_afternoon:vec![]
             },
             DayRule {
                 shift_morning:vec![],
