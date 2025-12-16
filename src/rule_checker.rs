@@ -40,9 +40,9 @@ where
     }
 }
 
-impl<'a> CheckRule<(&'a WeekRuleTable<'a, Incomplete>, &'a StaffGroupList)> for InOfRange {
+impl<'a> CheckRule<(WeekRuleTable<'a, Incomplete>, StaffGroupList)> for InOfRange {
     type Error = RuleErr;
-    fn check_rule(&self, data: &(&'a WeekRuleTable<'a, Incomplete>, &'a StaffGroupList)) 
+    fn check_rule(&self, data: &(WeekRuleTable<'a, Incomplete>, StaffGroupList)) 
         -> Result<(), Self::Error> {
         for week_rule in &data.0.0 {
             for day_rule in &week_rule.0 {
