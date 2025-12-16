@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod logic_test {
-    use super::*;
-    use shift_calendar::*;
+    use shift_calendar::shift_gen::*;
+    use shift_calendar::rule_checker::*;
     use serde::Deserialize;
     use std::collections::BTreeMap;
 
@@ -101,14 +101,21 @@ mod logic_test {
 
         let staff_group_list = StaffGroupList(vec![staff_group_a, staff_group_b]);
 
-        let shift = gen_shift(week_rule_table, &staff_group_list, 25, 5);
 
-        for (week, i) in shift.iter().enumerate() {
-            println!("week{} ===========", week);
-            for j in &i.0 {
-                println!("{:?}", j);
+        if let Ok(a) = verify(
+            &(&week_rule_table, &staff_group_list),
+            &[InOfRange{}]
+        ) {
+            println!("Success!");
+            let shift = gen_shift(&week_rule_table, &staff_group_list, 25, 5);
+            for (week, i) in shift.iter().enumerate() {
+                println!("week{} ===========", week);
+                for j in &i.0 {
+                    println!("{:?}", j);
+                }
             }
         }
+
     }
 
     #[test]
