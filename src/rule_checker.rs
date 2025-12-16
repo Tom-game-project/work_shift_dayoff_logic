@@ -12,17 +12,6 @@ pub trait CheckRule<Data> {
     fn check_rule(&self, data: &Data) -> Result<(), Self::Error>;
 }
 
-pub struct InOfRange(
-);
-
-pub struct RuleErr {
-    cor: CauseOfRuleErr 
-}
-
-pub enum CauseOfRuleErr {
-    GroupIdOutOfRange,
-}
-
 pub fn verify<'a, Data, R>(
     data: &'a Data,
     rules: &[R],
@@ -39,6 +28,16 @@ where
         }
     }
 }
+
+pub struct RuleErr {
+    cor: CauseOfRuleErr 
+}
+
+pub enum CauseOfRuleErr {
+    GroupIdOutOfRange,
+}
+
+pub struct InOfRange();
 
 impl<'a> CheckRule<(WeekRuleTable<'a, Incomplete>, StaffGroupList)> for InOfRange {
     type Error = RuleErr;
