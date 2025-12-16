@@ -118,23 +118,23 @@ impl<'a> FillHoll<'a> for DayRule<'a, Incomplete> {
 
 #[derive(Debug, Clone)]
 pub struct DayDecidedShift<'a> {
-    pub shift_morning: Vec<Option<&'a Staff>>,
-    pub shift_afternoon: Vec<Option<&'a Staff>>,
+    pub shift_morning: Vec<&'a Staff>,
+    pub shift_afternoon: Vec<&'a Staff>,
 }
 
 impl<'a> GenDecided for  DayRule<'a, Ready> {
     type Output = DayDecidedShift<'a>;
 
     fn gen_decided(&self) -> Self::Output {
-        let shift_morning: Vec<Option<&'a Staff>>  = self
+        let shift_morning: Vec<&'a Staff>  = self
             .shift_morning
             .iter()
-            .map(|hole| hole.gen_decided())
+            .filter_map(|hole| hole.gen_decided())
             .collect();
-        let shift_afternoon: Vec<Option<&'a Staff>> = self
+        let shift_afternoon: Vec<&'a Staff> = self
             .shift_afternoon
             .iter()
-            .map(|hole| hole.gen_decided())
+            .filter_map(|hole| hole.gen_decided())
             .collect();
         DayDecidedShift { shift_morning, shift_afternoon }
     }
