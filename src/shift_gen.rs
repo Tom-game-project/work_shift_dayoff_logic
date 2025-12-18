@@ -12,9 +12,9 @@ pub struct Ready;
 ///
 /// abstruct shift hall
 #[derive(Clone)]
-pub struct ShiftHall<'a, State> {
+pub struct ShiftHoll<'a, State> {
     pub group_id: usize,
-    id: usize,
+    pub id: usize,
     staff: Option<&'a Staff>,
     _state: PhantomData<State>
 }
@@ -40,23 +40,14 @@ trait GenDecided {
     fn gen_decided(&self) -> Self::Output;
 }
 
-// enum VerifyItems {
-//     NoDupHallPerWeek,      // No duplicates ShiftHall allowed per week
-//     WeekRuleTableEquality, // - All staff are assigned shifts equally within rules
-// }
-
-struct InOfRange<T>(
-    PhantomData<T>
-);
-
-impl<'a> ShiftHall<'a, Incomplete> {
+impl<'a> ShiftHoll<'a, Incomplete> {
     pub fn new(group_id: usize, id: usize) -> Self{
         Self { group_id , id, staff: None, _state: PhantomData }
     }
 }
 
-impl<'a> FillHoll<'a> for ShiftHall<'a, Incomplete> {
-    type Output = ShiftHall<'a, Ready>;
+impl<'a> FillHoll<'a> for ShiftHoll<'a, Incomplete> {
+    type Output = ShiftHoll<'a, Ready>;
 
     fn set_self_from_staff_list(
         self,
@@ -65,7 +56,7 @@ impl<'a> FillHoll<'a> for ShiftHall<'a, Incomplete> {
     ) -> Self::Output {
         let staff_group = &staff_group_list.0[self.group_id /*group id must be less than staff_group_list length*/];
         let staff = staff_group.pickup_staff((delta + self.id) % staff_group.staff_list.len());
-        ShiftHall {
+        ShiftHoll {
             group_id: self.group_id,
             id: self.id, 
             staff: Some(staff),
@@ -74,7 +65,7 @@ impl<'a> FillHoll<'a> for ShiftHall<'a, Incomplete> {
     }
 }
 
-impl<'a> GenDecided for ShiftHall<'a, Ready> {
+impl<'a> GenDecided for ShiftHoll<'a, Ready> {
     type Output = Option<&'a Staff>;
 
     fn gen_decided(&self) -> Self::Output {
@@ -87,8 +78,8 @@ impl<'a> GenDecided for ShiftHall<'a, Ready> {
 /// shift a day
 #[derive(Clone)]
 pub struct DayRule<'a, State> {
-    pub shift_morning: Vec<ShiftHall<'a, State>>,
-    pub shift_afternoon: Vec<ShiftHall<'a, State>>,
+    pub shift_morning: Vec<ShiftHoll<'a, State>>,
+    pub shift_afternoon: Vec<ShiftHoll<'a, State>>,
 }
 
 impl<'a> FillHoll<'a> for DayRule<'a, Incomplete> {
@@ -100,8 +91,8 @@ impl<'a> FillHoll<'a> for DayRule<'a, Incomplete> {
         delta: usize)
         -> Self::Output
     {
-        let mut shift_morning: Vec<ShiftHall<'_, Ready>> = vec![];
-        let mut shift_afternoon: Vec<ShiftHall<'_, Ready>> = vec![];
+        let mut shift_morning: Vec<ShiftHoll<'_, Ready>> = vec![];
+        let mut shift_afternoon: Vec<ShiftHoll<'_, Ready>> = vec![];
         for i in self.shift_morning {
             shift_morning.push(
                 i.set_self_from_staff_list(staff_group_list, delta)
@@ -232,6 +223,10 @@ impl StaffGroup {
     pub fn add_staff(&mut self, name:&str) {
         self.staff_list.push(
             Staff { name: name.to_string(), id: self.staff_list.len() });
+    }
+
+    pub fn len(&self) -> usize {
+        self.staff_list.len()
     }
 }
 

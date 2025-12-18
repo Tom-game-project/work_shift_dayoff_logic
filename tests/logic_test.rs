@@ -12,12 +12,12 @@ mod logic_test {
 
     type Config = BTreeMap<String, Group>;
 
-    /// char to shifthall 
-    fn c2h<'a>(type_char:char, id:usize) -> Option<ShiftHall<'a, Incomplete>> {
+    /// char to shiftholl 
+    fn c2h<'a>(type_char:char, id:usize) -> Option<ShiftHoll<'a, Incomplete>> {
         match type_char {
-            'a' => Some(ShiftHall::new(0, id)),
-            'b' => Some(ShiftHall::new(1, id)),
-            'c' => Some(ShiftHall::new(2, id)), // for incorrect test case
+            'a' => Some(ShiftHoll::new(0, id)),
+            'b' => Some(ShiftHoll::new(1, id)),
+            'c' => Some(ShiftHoll::new(2, id)), // for incorrect test case
             _ => None
         }
     }
@@ -59,6 +59,20 @@ mod logic_test {
         };
     }
 
+    fn treat_error(e: RuleErr) {
+        match e.reason {
+            CauseOfRuleErr::DupHoll => {
+                println!("DupHoll!")
+            }
+            CauseOfRuleErr::GroupIdOutOfRange(hole) => {
+                println!("group id {} GroupIdOutOfRange! ", hole.group_id)
+            }
+            CauseOfRuleErr::StaffIdOutOfRange(hole) => {
+                println!("id {} StaffIdOutOfRange!", hole.id);
+            }
+        }
+    }
+
     fn create_test_data() {
         let week_rule0 = week_rule![
             mon: m[a0, b0],  a[b1],
@@ -96,19 +110,23 @@ mod logic_test {
 
         let staff_group_list = StaffGroupList(vec![staff_group_a, staff_group_b]);
 
-        if let Ok((week_rule_table, staff_group_list)) = verify(
+        match verify(
             &(week_rule_table, staff_group_list),
-            &[InOfRange()]
+            &[NoDupHollPerWeek()]
         ) {
-            let shift = gen_shift(&week_rule_table, &staff_group_list, 25, 5);
-            for (week, i) in shift.iter().enumerate() {
-                println!("week{} ===========", week);
-                for j in &i.0 {
-                    println!("{:?}", j);
+            Ok((week_rule_table, staff_group_list)) => {
+                let shift = gen_shift(&week_rule_table, &staff_group_list, 25, 5);
+                for (week, i) in shift.iter().enumerate() {
+                    println!("week{} ===========", week);
+                    for j in &i.0 {
+                        println!("{:?}", j);
+                    }
                 }
             }
-        } else {
-            println!("Rule Error Occured!");
+            Err(e) => {
+                treat_error(e);
+            }
+
         }
     }
 
@@ -122,9 +140,9 @@ mod logic_test {
         // This data has index issues.
         let week_rule0 = week_rule![
             mon: m[a0, b0],  a[b1],
-            tue: m[],        a[c1], // <- Error!
+            tue: m[],        a[a1], // <- Error!
             wed: m[],        a[],
-            thu: m[b4],      a[],
+            thu: m[a1],      a[],
             fri: m[b5, b2],  a[a3, b3, a2],
             sat: m[],        a[],
             sun: m[],        a[],
@@ -133,7 +151,7 @@ mod logic_test {
             mon: m[a2, b3],  a[b2],
             tue: m[],        a[b4],
             wed: m[],        a[],
-            thu: m[a1],      a[],
+            thu: m[b4],      a[],
             fri: m[b1, b3],  a[b5, a0, b0],
             sat: m[],        a[],
             sun: m[],        a[],
@@ -156,21 +174,24 @@ mod logic_test {
 
         let staff_group_list = StaffGroupList(vec![staff_group_a, staff_group_b]);
 
-        if let Ok((week_rule_table, staff_group_list)) = verify(
+        match verify(
             &(week_rule_table, staff_group_list),
-            &[InOfRange()]
+            &[NoDupHollPerWeek()]
         ) {
-            let shift = gen_shift(&week_rule_table, &staff_group_list, 25, 5);
-            for (week, i) in shift.iter().enumerate() {
-                println!("week{} ===========", week);
-                for j in &i.0 {
-                    println!("{:?}", j);
+            Ok((week_rule_table, staff_group_list)) => {
+                let shift = gen_shift(&week_rule_table, &staff_group_list, 25, 5);
+                for (week, i) in shift.iter().enumerate() {
+                    println!("week{} ===========", week);
+                    for j in &i.0 {
+                        println!("{:?}", j);
+                    }
                 }
             }
-        } else {
-            println!("Rule Error Occured!");
-        }
+            Err(e) => {
+                treat_error(e);
+            }
 
+        }
     }
 
     fn it_works02() {
@@ -183,6 +204,5 @@ mod logic_test {
             sat: m[],        a[],
             sun: m[],        a[],
         ];
-
     }
 }
