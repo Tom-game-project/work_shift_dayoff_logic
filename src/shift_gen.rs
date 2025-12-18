@@ -23,6 +23,17 @@ pub struct StaffGroupList(
     pub Vec<StaffGroup>
 );
 
+impl StaffGroupList {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+
+    pub fn add_staff_group(&mut self, mut staff_group: StaffGroup) {
+        staff_group.group_id = self.0.len();
+        self.0.push(staff_group);
+    }
+}
+
 /// Assign staff based on shift rule
 trait FillHoll<'a> {
     type Output;
@@ -195,14 +206,14 @@ pub fn gen_shift<'a>(
 
 /// Staff Info
 #[derive(Debug)]
-pub struct Staff {
+pub struct Staff{
     pub name: String,
-    id: usize
+    id: usize,
 }
 
 impl Staff {
-    pub fn new(name: &str) -> Self {
-        Self { name: name.to_string(), id: 0 }
+    pub fn new(name: &str, ) -> Self {
+        Self { name: name.to_string(), id: 0, }
     }
 
     pub fn get_id(&self) -> usize {
@@ -212,17 +223,23 @@ impl Staff {
 
 /// Staff Info
 pub struct StaffGroup {
+    name: String,
+    group_id: usize,
     staff_list: Vec<Staff>,
 }
 
 impl StaffGroup {
-    pub fn new() -> Self {
-        Self { staff_list: vec![] }
+    pub fn new(name:&str) -> Self {
+        Self {
+            name: name.to_string(), 
+            group_id: 0,
+            staff_list: vec![] 
+        }
     }
 
     pub fn add_staff(&mut self, name:&str) {
         self.staff_list.push(
-            Staff { name: name.to_string(), id: self.staff_list.len() });
+            Staff { name: name.to_string(), id: self.staff_list.len(), });
     }
 
     pub fn len(&self) -> usize {
@@ -232,7 +249,7 @@ impl StaffGroup {
 
 impl StaffGroup{
     /// assign staff
-    fn pickup_staff<'a>(&'a self, index:usize) -> &'a Staff {
+    pub fn pickup_staff<'a>(&'a self, index:usize) -> &'a Staff {
         &self.staff_list[index]
     }
 }

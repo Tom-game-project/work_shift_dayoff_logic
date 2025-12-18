@@ -32,7 +32,8 @@ mod logic_test {
             c2h(c, n).unwrap()
         }};
     }
-    macro_rules! day {
+
+    macro_rules! day_rule {
         (
             m[$($m:ident),* $(,)?],
             a[$($a:ident),* $(,)?]
@@ -43,6 +44,7 @@ mod logic_test {
             }
         };
     }
+
     macro_rules! week_rule {
         (
             $(
@@ -53,7 +55,7 @@ mod logic_test {
         ) => {
             WeekRule([
                 $(
-                    day!(m[$($m),*], a[$($a),*])
+                    day_rule!(m[$($m),*], a[$($a),*])
                 ),*
             ])
         };
@@ -61,14 +63,17 @@ mod logic_test {
 
     fn treat_error(e: RuleErr) {
         match e.reason {
-            CauseOfRuleErr::DupHoll => {
+            CauseOfRuleErr::DupHollErr => {
                 println!("DupHoll!")
             }
-            CauseOfRuleErr::GroupIdOutOfRange(hole) => {
+            CauseOfRuleErr::GroupIdOutOfRangeErr(hole) => {
                 println!("group id {} GroupIdOutOfRange! ", hole.group_id)
             }
-            CauseOfRuleErr::StaffIdOutOfRange(hole) => {
+            CauseOfRuleErr::StaffIdOutOfRangeErr(hole) => {
                 println!("id {} StaffIdOutOfRange!", hole.id);
+            }
+            CauseOfRuleErr::AmPmErr() => {
+                println!("AM PM Error!");
             }
         }
     }
@@ -98,24 +103,29 @@ mod logic_test {
         // Read Staff info from test.toml file
         let s = std::fs::read_to_string("test.toml").unwrap();
         let groups: Config = toml::from_str(&s).unwrap();
-        let mut staff_group_a = StaffGroup::new();
+        let mut staff_group_a = StaffGroup::new("group a");
 
         for name in &groups["A"].staff {
             staff_group_a.add_staff(name);
         }
-        let mut staff_group_b = StaffGroup::new();
+        let mut staff_group_b = StaffGroup::new("group b");
         for name in &groups["B"].staff {
             staff_group_b.add_staff(name);
         }
 
-        let staff_group_list = StaffGroupList(vec![staff_group_a, staff_group_b]);
+        let mut staff_group_list = StaffGroupList::new();
+
+        staff_group_list.add_staff_group(staff_group_a);
+        staff_group_list.add_staff_group(staff_group_b);
 
         match verify(
             &(week_rule_table, staff_group_list),
-            &[NoDupHollPerWeek()]
+            &[&BasicChecker()]
         ) {
             Ok((week_rule_table, staff_group_list)) => {
-                let shift = gen_shift(&week_rule_table, &staff_group_list, 25, 5);
+                let shift = gen_shift(
+                    &week_rule_table,
+                    &staff_group_list, 25, 5);
                 for (week, i) in shift.iter().enumerate() {
                     println!("week{} ===========", week);
                     for j in &i.0 {
@@ -126,7 +136,6 @@ mod logic_test {
             Err(e) => {
                 treat_error(e);
             }
-
         }
     }
 
@@ -162,24 +171,32 @@ mod logic_test {
         // Read Staff info from test.toml file
         let s = std::fs::read_to_string("test.toml").unwrap();
         let groups: Config = toml::from_str(&s).unwrap();
-        let mut staff_group_a = StaffGroup::new();
+        let mut staff_group_a = StaffGroup::new("group a");
 
         for name in &groups["A"].staff {
             staff_group_a.add_staff(name);
         }
-        let mut staff_group_b = StaffGroup::new();
+        let mut staff_group_b = StaffGroup::new("group b");
         for name in &groups["B"].staff {
             staff_group_b.add_staff(name);
         }
 
-        let staff_group_list = StaffGroupList(vec![staff_group_a, staff_group_b]);
+        let mut staff_group_list = StaffGroupList::new();
+
+        staff_group_list.add_staff_group(staff_group_a);
+        staff_group_list.add_staff_group(staff_group_b);
 
         match verify(
             &(week_rule_table, staff_group_list),
-            &[NoDupHollPerWeek()]
+            &[
+                &BasicChecker(),
+                &AmPmChecker::new(1, 1)
+            ]
         ) {
             Ok((week_rule_table, staff_group_list)) => {
-                let shift = gen_shift(&week_rule_table, &staff_group_list, 25, 5);
+                let shift = gen_shift(
+                    &week_rule_table, 
+                    &staff_group_list, 25, 5);
                 for (week, i) in shift.iter().enumerate() {
                     println!("week{} ===========", week);
                     for j in &i.0 {
@@ -190,7 +207,6 @@ mod logic_test {
             Err(e) => {
                 treat_error(e);
             }
-
         }
     }
 
