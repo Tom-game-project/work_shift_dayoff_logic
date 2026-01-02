@@ -9,6 +9,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
+name = "error-combinator"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6105b7ba57ad3d4175ce7e83d105b00701a833c6838aa7d3e20e110ad87e7b5a"
+
+[[package]]
 name = "hashbrown"
 version = "0.16.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -91,6 +97,7 @@ dependencies = [
 name = "shift_calendar"
 version = "0.1.0"
 dependencies = [
+ "error-combinator",
  "serde",
  "toml",
 ]
