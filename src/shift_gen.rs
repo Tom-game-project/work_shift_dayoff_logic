@@ -179,6 +179,17 @@ pub struct WeekRuleTable<'a, State>(
     pub Vec<WeekRule<'a, State>>
 );
 
+impl<'a> WeekRuleTable<'a, Incomplete> {
+    pub fn new() -> Self {
+        Self (
+            vec![]
+        )
+    }
+    pub fn add_week_rule(&mut self, week_rule: WeekRule<'a, Incomplete>) {
+        self.0.push(week_rule);
+    }
+}
+
 pub fn gen_shift<'a>(
     week_rule_table: & WeekRuleTable<'a, Incomplete>,
     staff_group_list: &'a StaffGroupList,
