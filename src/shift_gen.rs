@@ -200,17 +200,24 @@ pub fn gen_shift<'a>(
 
     (0..week_gen_range)
         .map(|i| {
-            week_rule_table.0[(week_delta + i) % cycle] // the rule that apply to
-                .clone()
-                .set_self_from_staff_list(
-                    staff_group_list, (week_delta + i) / cycle // the number that applied rules
-                )
+            gen_one_week_shift(week_rule_table, staff_group_list, week_delta + i)
         })
-        .map(|i|
-            i.gen_decided()
-        )
         .collect::<Vec<_>>()
         .into_boxed_slice()
+}
+
+pub fn gen_one_week_shift<'a>(
+    week_rule_table: & WeekRuleTable<'a, Incomplete>,
+    staff_group_list: &'a StaffGroupList,
+    week_delta: usize,
+) -> WeekDecidedShift<'a>{
+    let cycle = week_rule_table.0.len();
+
+    week_rule_table.0[(week_delta) % cycle] // the rule that apply to
+        .clone()
+        .set_self_from_staff_list(
+            staff_group_list, week_delta / cycle // the number that applied rules
+        ).gen_decided()
 }
 
 // ========= names ===========
@@ -219,12 +226,13 @@ pub fn gen_shift<'a>(
 #[derive(Debug)]
 pub struct Staff{
     pub name: String,
-    id: usize,
+    pub id: usize,
+    pub group_id: usize,
 }
 
 impl Staff {
-    pub fn new(name: &str, ) -> Self {
-        Self { name: name.to_string(), id: 0, }
+    pub fn new(name: &str, group_id: usize) -> Self {
+        Self { name: name.to_string(), id: 0, group_id }
     }
 
     pub fn get_id(&self) -> usize {
@@ -234,9 +242,9 @@ impl Staff {
 
 /// Staff Info
 pub struct StaffGroup {
-    name: String,
-    group_id: usize,
-    staff_list: Vec<Staff>,
+    pub name: String,
+    pub group_id: usize,
+    pub staff_list: Vec<Staff>,
 }
 
 impl StaffGroup {
@@ -250,7 +258,11 @@ impl StaffGroup {
 
     pub fn add_staff(&mut self, name:&str) {
         self.staff_list.push(
-            Staff { name: name.to_string(), id: self.staff_list.len(), });
+            Staff {
+                name: name.to_string(),
+                id: self.staff_list.len(),
+                group_id:self.group_id
+            });
     }
 
     pub fn len(&self) -> usize {

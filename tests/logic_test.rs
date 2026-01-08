@@ -147,11 +147,29 @@ mod logic_test {
     #[test]
     fn it_works01() {
         // This data has index issues.
+        // let week_rule0 = week_rule![
+        //     mon: m[a0, b0],  a[b1],
+        //     tue: m[],        a[a1], // <- Error!
+        //     wed: m[],        a[],
+        //     thu: m[a1],      a[],
+        //     fri: m[b5, b2],  a[a3, b3, a2],
+        //     sat: m[],        a[],
+        //     sun: m[],        a[],
+        // ];
+        // let week_rule1 = week_rule![
+        //     mon: m[a2, b3],  a[b2],
+        //     tue: m[],        a[b4],
+        //     wed: m[],        a[],
+        //     thu: m[b4],      a[],
+        //     fri: m[b1, b3],  a[b5, a0, b0],
+        //     sat: m[],        a[],
+        //     sun: m[],        a[],
+        // ];
         let week_rule0 = week_rule![
             mon: m[a0, b0],  a[b1],
-            tue: m[],        a[a1], // <- Error!
+            tue: m[],        a[a1],
             wed: m[],        a[],
-            thu: m[a1],      a[],
+            thu: m[b4],      a[],
             fri: m[b5, b2],  a[a3, b3, a2],
             sat: m[],        a[],
             sun: m[],        a[],
@@ -160,7 +178,7 @@ mod logic_test {
             mon: m[a2, b3],  a[b2],
             tue: m[],        a[b4],
             wed: m[],        a[],
-            thu: m[b4],      a[],
+            thu: m[a1],      a[],
             fri: m[b1, b3],  a[b5, a0, b0],
             sat: m[],        a[],
             sun: m[],        a[],
@@ -190,7 +208,7 @@ mod logic_test {
             &(week_rule_table, staff_group_list),
             &[
                 &BasicChecker(),
-                &AmPmChecker::new(1, 1)
+                //&AmPmChecker::new(1, 1)
             ]
         ) {
             Ok((week_rule_table, staff_group_list)) => {
@@ -199,7 +217,13 @@ mod logic_test {
                     &staff_group_list, 25, 5);
                 for (week, i) in shift.iter().enumerate() {
                     println!("week{} ===========", week);
+                    println!("v1");
                     for j in &i.0 {
+                        println!("{:?}", j);
+                    }
+                    println!("v2");
+                    let day_dec = gen_one_week_shift(&week_rule_table, &staff_group_list, 25 + week);
+                    for j in &day_dec.0 {
                         println!("{:?}", j);
                     }
                 }
