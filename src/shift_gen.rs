@@ -160,6 +160,7 @@ impl<'a> FillHoll<'a> for WeekRule<'a, Incomplete> {
     }
 }
 
+#[derive(Debug)]
 pub struct WeekDecidedShift<'a>(
     pub [DayDecidedShift<'a>; 7]
 );
