@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 /// State
 pub struct Unconfirmed;
 /// State
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Incomplete;
 /// State
 pub struct Ready;
@@ -11,7 +11,7 @@ pub struct Ready;
 /// Rule Data
 ///
 /// abstruct shift hall
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ShiftHoll<'a, State> {
     pub group_id: usize,
     pub id: usize,
@@ -87,7 +87,7 @@ impl<'a> GenDecided for ShiftHoll<'a, Ready> {
 /// Rule Data
 ///
 /// shift a day
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DayRule<'a, State> {
     pub shift_morning: Vec<ShiftHoll<'a, State>>,
     pub shift_afternoon: Vec<ShiftHoll<'a, State>>,
@@ -143,7 +143,7 @@ impl<'a> GenDecided for  DayRule<'a, Ready> {
 }
 
 /// Rule Data
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct WeekRule<'a, State> (
     pub [DayRule<'a, State>; 7]
 );
@@ -175,7 +175,7 @@ impl<'a> GenDecided for  WeekRule<'a, Ready> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct WeekRuleTable<'a, State>(
     pub Vec<WeekRule<'a, State>>
 );
