@@ -19,6 +19,7 @@ pub struct ShiftHoll<'a, State> {
     _state: PhantomData<State>
 }
 
+#[derive(Debug)]
 pub struct StaffGroupList(
     pub Vec<StaffGroup>
 );
@@ -242,6 +243,7 @@ impl Staff {
 }
 
 /// Staff Info
+#[derive(Debug)]
 pub struct StaffGroup {
     pub name: String,
     pub group_id: usize,
