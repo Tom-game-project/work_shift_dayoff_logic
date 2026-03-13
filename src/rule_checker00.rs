@@ -1,6 +1,6 @@
 use error_combinator::{
     check::{
-        Check, CheckOutcome, CheckState, check_noref, check_ref
+        Check, CheckState, lift
     },
     cmberr::VecCombine
 };
@@ -175,21 +175,23 @@ fn check_unassigned_staff<'a>(data: &(WeekRuleTable<'a, Incomplete>, StaffGroupL
 fn checker<'a>(data: (WeekRuleTable<'a, Incomplete>, StaffGroupList)) 
 -> Result<(WeekRuleTable<'a, Incomplete>, StaffGroupList), Vec<ValidateErr>>
 {
-    check_noref::<
-        (WeekRuleTable<'a, Incomplete>, StaffGroupList),
+    lift::<
+        _,
+        _,
         IndexUnchecked,
         IndexChecked,
-        ValidateErr,
+        _,
         _
     >(check_index)
     .and::<
     _,
     VecCombine<ValidateErr>
-    >(check_noref::<
-        (WeekRuleTable<'a, Incomplete>, StaffGroupList),
+    >(lift::<
+        _,
+        _,
         IndexChecked,
         IndexChecked,
-        ValidateErr,
+        _,
         _
     >(check_unassigned_staff))
     .check(CheckState::new(data))
